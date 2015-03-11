@@ -1,35 +1,75 @@
-# Server version: 5.5.40 MySQL Community Server (GPL)
-import MySQLdb
-import os, sys, glob
-import csv
 
-# http://sourceforge.net/p/mysql-python/discussion/70461/thread/21fb6268/
-import _mysql_exceptions
+
+# file utilities and databases
+import MySQLdb # Server version: 5.5.40 MySQL Community Server (GPL)
+import os, sys, glob
+import csv, gzip
+
+# hidden exception classes
+import _mysql_exceptions, _csv
+
+# plotting
+import numpy as np
+import matplotlib
+matplotlib.use('GTKAgg') # forwarding to remote machine
+import matplotlib.pyplot as plt
+
+
 
 
 class file2sql:
     '''
     Move files in a directory to a database table.
 
+    Assumed csv files and 1 header line.
+
     Usage
 
     credentials = ($HOST, $USER, $PASSWD, $DB)
-    directory   = $DIR    # data directory
-    name        = $NAME   # table name
+    directory   = $DIR      # data directory
+    name        = $NAME     # table name
+    verbose     = False
 
     x = mySQLfile(credentials, directory, name)
-    x.csv2db()
+    x.load_data()
+    x.index_data()
 
     '''
 
-    def __init__(self, credentials, directory, name):
+    def __init__(self, credentials, directory, name, verbose=True):
         '''Connect to database, find files to upload.'''
-        # connect
+
         self.credentials = credentials
-        self.db = MySQLdb.connect(host   = self.credentials[0], 
-                                  user   = self.credentials[1], 
-                                  passwd = self.credentials[2], 
-                                  db     = self.credentials[3])
+        # check database exists, if not, create it
+
+        # connect. create database if DNE
+        connected = False
+        db = credentials[3]
+        while not connected:
+            try:
+                self.db = MySQLdb.connect(host   = credentials[0], 
+                                          user   = credentials[1], 
+                                          passwd = credentials[2], 
+                                          db     = db)
+                connected = True
+            except _mysql_exceptions.OperationalError as e:
+                print 'Database %s does not exist.' % db
+                question = ('Create %s (0) or choose a different '
+                            'database (1)? ' % db)
+                selfdb = self.askthrice(question)
+                if selfdb:
+                    db = raw_input('Enter a new database name: ').strip()
+                else:
+                    tmpcon = MySQLdb.connect(host   = credentials[0], 
+                                             user   = credentials[1], 
+                                             passwd = credentials[2])
+                    tmpcur = tmpcon.cursor()
+                    cmd = 'CREATE DATABASE %s' % db
+                    tmpcur.execute(cmd)
+                    tmpcon.commit()
+                    tmpcur.close()
+        self.dbname = db
+
         self.cur = self.db.cursor()
 
         # checking the dir exists
@@ -38,9 +78,10 @@ class file2sql:
             print '%s is not a directory.' % directory
             sys.exit()
 
-        # checking the dir for sql insertion?
+        # checking the dir for sql injection?
+        # checking the database for sql injection?
 
-        # checking the name for sql insertion
+        # checking the name for sql injection
         self.name = self.scrub(str(name))
         if self.name != name:
             print 'Warning!'
@@ -49,6 +90,9 @@ class file2sql:
 
         # getting files
         self.get_files(pattern='*.csv*')
+
+        # verbosity
+        self.verbose = verbose
 
     def scrub(self, stmt):
         '''Scrub punctuation and whitespace from a string.'''
@@ -87,57 +131,70 @@ class file2sql:
             question = 'Update table (0) or overwrite (1)? '
             check = self.askthrice(question)
 
-        if check:
-            # rm existing table
-            destroyer = 'DROP TABLE IF EXISTS %s' % self.name
-            self.cur.execute(destroyer)
-            
-            # creating a table requires knowing the header
-            question = ('Will you use the default table creator (0) '
-                        'or supply your own (1)? ')
-            selftable = self.askthrice(question)
-            if selftable: creator = self.selftablecreator()
-            else: creator = self.tablecreator()
-            
-            # execute create, defaults coded in 
-            try: 
-                self.cur.execute(creator)
-            except _mysql_exceptions.ProgrammingError as e:
-                if selftable:
-                    err1 = ('Your creator command failed. It was:\n\t%s\n'
-                            'The failure is probably due to MySQL reserved '
-                            'words w/out backticks. Retrying using the '
-                            'default table creator.' % repr(creator))
-                    print err1
-                    creator = self.tablecreator()
-                    try:
-                        self.cur.execute(creator)
-                    except _mysql_exceptions.ProgrammingError as e:
-                        err0 = ('The default creator command failed.\n'
-                                'Check the source code or your command for '
-                                'column names that are RESERVED WORDS for the '
-                                'MySQL server.\nThe command used was:\n\t%s' 
-                                % creator)
-                        print e
-                        sys.exit(err0)
-                else:
+            if check:
+                # rm existing table
+                destroyer = 'DROP TABLE IF EXISTS %s' % self.name
+                self.cur.execute(destroyer)
+
+                self.create_table()
+        else:
+            print 'There is no %s.%s table.' % (self.dbname, self.name)
+            self.create_table()
+
+    def create_table(self):
+        '''Create a table.'''
+
+        # creating a table requires knowing the header
+        question = ('Will you use the default table creator (0) '
+                    'or supply your own (1)? ')
+        selftable = self.askthrice(question)
+        if selftable: creator = self.input_table_create()
+        else: creator = self.auto_table_create()
+
+        # execute create, defaults coded in 
+        try: 
+            self.cur.execute(creator)
+        except _mysql_exceptions.ProgrammingError as e:
+            if selftable:
+                err1 = ('Your creator command failed. It was:\n\t%s\n'
+                        'The failure is probably due to MySQL reserved '
+                        'words w/out backticks. Retrying using the '
+                        'default table creator.' % repr(creator))
+                print err1
+                creator = self.auto_table_create()
+                try:
+                    self.cur.execute(creator)
+                except _mysql_exceptions.ProgrammingError as e:
                     err0 = ('The default creator command failed.\n'
-                            'Check the source code or your command for column '
-                            'names that are RESERVED WORDS for the MySQL '
-                            'server.\nThe command used was:\n\t%s' % creator)
+                            'Check the source code or your command for '
+                            'column names that are RESERVED WORDS for the '
+                            'MySQL server.\nThe command used was:\n\t%s' 
+                            % creator)
                     print e
                     sys.exit(err0)
+            else:
+                err0 = ('The default creator command failed.\n'
+                        'Check the source code or your command for column '
+                        'names that are RESERVED WORDS for the MySQL '
+                        'server.\nThe command used was:\n\t%s' % creator)
+                print e
+                sys.exit(err0)
 
-    def tablecreator(self):
-        '''SQL command to create table.
+    def auto_table_create(self):
+        '''SQL command to create table from csv files.
 
         Create a string SQL command to set up the `creator` command
-        used in csv2db()
+        used in load_data()
 
         All column types are strings :p
         '''
+        # open a file to retrieve header
         r = csv.reader(open(self.files[0], 'rb'))
-        header = r.next()
+        try:
+            header = r.next()
+        except _csv.Error as e:
+            print e
+            sys.exit('Error: probably compressed files, not CSV files.')
         self.n = len(header)
 
         # check header is valid
@@ -152,7 +209,7 @@ class file2sql:
         else:
             self.cols = ['C'+str(i) for i in xrange(self.n)]
 
-        # I hate the problem of reserved words (mysql -v 5.5.40)
+        # I dislike the problem of reserved words (mysql -v 5.5.40)
         # Should use sets to check for matches and remove, but I'm just
         # going to assume backticks and omniscient mysql database users
 
@@ -162,15 +219,15 @@ class file2sql:
 
         return creator
 
-    def selftablecreator(self):
+    def input_table_create(self):
         '''Type in your own table-creator'''
-        stmt = 'Type your SQL statement to create a %s.%s table from %s here: ' \
-                % (self.credentials[3], self.name, self.csvfile)
+        stmt = 'Type your SQL statement to create a %s.%s table here: ' \
+                % (self.dbname, self.name)
         return raw_input(stmt)
 
-    def csv2db(self):
-        '''CSV files to database
-        
+    def load_data(self):
+        '''CSV files to database.
+
         Three commands of note:
         destroyer: removes existing table
         creator:   creates table
@@ -184,15 +241,83 @@ class file2sql:
             # Load data command
             loader = ("LOAD DATA LOCAL INFILE '%s' INTO TABLE %s FIELDS "
                       "TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES "
-                      "TERMINATED BY '\n' IGNORE 1 LINES" 
+                      "TERMINATED BY '\r\n' IGNORE 1 LINES" 
                       % (f, self.name))
-            print 'Importing %s into the %s table.' \
-                   % (f, self.credentials[3] + '.' + self.name)
             self.cur.execute(loader)
-            
+
+            if self.verbose:
+                print 'Importing %s into the %s table.' \
+                       % (f, self.credentials[3] + '.' + self.name)
+
         # commit
         self.db.commit()
-        self.cur.close()
+        #self.cur.close()
 
-        return 1
+    def index_data(self):
+        '''Index the database table.
+        Someday, ask for other cols.'''
+
+        cols = ['query_date', 'Title', 'grade', 'review', 'appid']
+        for col in cols:
+            cmd = ("CREATE INDEX %s ON %s (%s)" % (col+'x', self.name, col))
+            self.cur.execute(cmd)
+
+        # commit
+        self.db.commit()
+
+
+    def time_trends(self):
+        '''Plot daily trends.
+
+        For each day:
+            Total library full_price
+            Total libray discount_price
+            Total n_reviews
+        '''
+        # CAREFUL
+        # lists in columns of sql databases are bad.
+        cmd = ("SELECT query_date, sum(full_price), sum(discount_price), "
+               "sum(n_reviews) FROM steam WHERE appid NOT LIKE '%,%' GROUP BY query_date")
+        self.cur.execute(cmd)
+        dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
+
+        fig, ax1 = plt.subplots()
+        ax1.plot(dates, full_price, 'g*')
+        ax1.plot(dates, discount_price, 'g+')
+        ax1.set_xlabel('time (s)')
+        # Make the y-axis label and tick labels match the line color.
+        ax1.set_ylabel('price ($)', color='g')
+        for tl in ax1.get_yticklabels():
+            tl.set_color('g')
+
+        ax2 = ax1.twinx()
+        ax2.plot(dates, n_reviews, 'r.')
+        ax2.set_ylabel('reviews', color='r')
+        for tl in ax2.get_yticklabels():
+            tl.set_color('r')
+        plt.show()
+        
+        
+
+        
+
+    def game_trends(self):
+        '''Tabulate game-specific trends.
+
+        For each game:
+            Min full_price, date
+            Max full_price, date
+            Min discount_price, date
+            Max discount_price, date
+        '''
+        pass
+
+    def review_trends(self):
+        '''Review statistics
+        
+        For each review:
+            
+        '''
+        
+
 
