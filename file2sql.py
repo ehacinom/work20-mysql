@@ -11,7 +11,7 @@ import _mysql_exceptions, _csv
 # plotting
 import numpy as np
 import matplotlib
-matplotlib.use('GTKAgg') # forwarding to remote machine
+#matplotlib.use('GTKCairo') # forwarding to remote machine
 import matplotlib.pyplot as plt
 
 
@@ -33,6 +33,10 @@ class file2sql:
     x = mySQLfile(credentials, directory, name)
     x.load_data()
     x.index_data()
+
+    Generalize
+    - index_data(self)
+    - *_trends() functions
 
     '''
 
@@ -255,7 +259,11 @@ class file2sql:
 
     def index_data(self):
         '''Index the database table.
-        Someday, ask for other cols.'''
+
+        Not generalized.
+        '''
+
+        print 'Indexing table.'
 
         cols = ['query_date', 'Title', 'grade', 'review', 'appid']
         for col in cols:
@@ -269,15 +277,19 @@ class file2sql:
     def time_trends(self):
         '''Plot daily trends.
 
+        Not generalized.
+
         For each day:
             Total library full_price
-            Total libray discount_price
+            Total library discount_price
             Total n_reviews
         '''
         # CAREFUL
         # lists in columns of sql databases are bad.
+        # ['Third-party', 'Install', 'Install Now'] are in DOUBLE discount_price
         cmd = ("SELECT query_date, sum(full_price), sum(discount_price), "
-               "sum(n_reviews) FROM steam WHERE appid NOT LIKE '%,%' GROUP BY query_date")
+               "sum(n_reviews) FROM steam WHERE appid NOT LIKE '%,%' AND "
+               "discount_price LIKE '%.%' GROUP BY query_date")
         self.cur.execute(cmd)
         dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
 
@@ -295,7 +307,8 @@ class file2sql:
         ax2.set_ylabel('reviews', color='r')
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
-        plt.show()
+        #plt.show()
+        plt.savefig('test')
         
         
 
@@ -303,6 +316,8 @@ class file2sql:
 
     def game_trends(self):
         '''Tabulate game-specific trends.
+
+        Not generalized.
 
         For each game:
             Min full_price, date
@@ -314,10 +329,13 @@ class file2sql:
 
     def review_trends(self):
         '''Review statistics
-        
+
+        Not generalized.
+
         For each review:
             
         '''
+        pass
         
 
 
