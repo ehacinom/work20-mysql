@@ -18,7 +18,7 @@ from tabulate import tabulate
 
 class file2sql:
     '''
-    Move files in a directory to a database table.
+    Move files in a directory to a database table. Plot relevant information.
 
     Assumed csv files and 1 header line.
 
@@ -30,8 +30,10 @@ class file2sql:
     verbose     = False
 
     x = mySQLfile(credentials, directory, name)
+    x.get_files()
     x.load_data()
     x.index_data()
+    x.trends()
 
     Generalize
     - index_data(self)
@@ -91,9 +93,6 @@ class file2sql:
             print 'name = %s is not alphanumeric and has been replaced by %s' \
                    % (str(name), self.name)
 
-        # getting files
-        self.get_files(pattern='*.csv*')
-
         # verbosity
         self.verbose = verbose
 
@@ -113,7 +112,7 @@ class file2sql:
                 ask += 1
         return int(ans)
 
-    def get_files(self, pattern):
+    def get_files(self, pattern='*.csv*'):
         '''Get all files from directory and its subdirectories.'''
         files = []
         for d, _, _ in os.walk(self.directory):
@@ -283,6 +282,9 @@ class file2sql:
             Total library discount_price
             Total n_reviews
         '''
+
+        if self.verbose: print 'Retrieving time trends from database.'
+
         # CAREFUL
         # lists in columns of sql databases are bad.
         # ['Third-party', 'Install', 'Install Now'] are in DOUBLE discount_price
@@ -293,10 +295,12 @@ class file2sql:
         dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
 
         # plotting
+        if self.verbose: print 'Plotting time trends.'
         fig, ax1 = plt.subplots()
         ax1.plot(dates, full_price, 'g+')
         ax1.plot(dates, discount_price, 'g*')
         ax1.set_xlabel('time (s)')
+        ax1.set_ylabel('')
         # rotate date axis automatically
         fig.autofmt_xdate()
         # Make the y-axis label and tick labels match the line color.
@@ -323,26 +327,37 @@ class file2sql:
             Title, Max discount_price, date
         '''
 
-        # going to add data to dictionary
-        games = {}
-        keys = []
+        # save each row of data as dictionary data[Title] = [Title, etc...]
+        data = {}
 
+        if self.verbose: print 'Retrieving game trends from database.'
         for price in ['full_price', 'discount_price']:
             for math in ['min', 'max']:
-                # key
-                key = math + ' ' + price
-                keys.append(key)
-
                 # retrieve from db
-                cmd = ("SELECT " + math + "(" + price + 
+                cmd = ("SELECT Title, " + math + "(" + price + 
                         "), query_date FROM steam " + self.condition + 
                         "GROUP BY Title")
                 self.cur.execute(cmd)
-                games[key] = zip(*self.cur.fetchall())
+                rows = self.cur.fetchall()
+
+                # ASSUMPTION!
+                # keys are all the same, no new keys will be found.
+                # this is not that bad an assuption, as we're finding 
+                # min and max, so that should be the same titles pulled out.
+                # sure fix: in else statement, check length of data[r[0]]
+                colname = math + ' ' + price
+                if not data:
+                    # add UTF8 decoded titles as keys
+                    for r in rows: data[r[0]] = [r[0].decode('utf-8'), r[1], r[2]]
+                    cols = ['title', colname, 'date']
+                else:
+                    for r in rows: data[r[0]].extend([r[1], r[2]])
+                    cols.extend([colname, 'date'])
 
         # output
-        print tabulate(games[k])
-                
+        if self.verbose: print 'Tables of game trends.'
+        print tabulate(data.values(), cols)
+
 
     def review_trends(self):
         '''Review statistics
@@ -353,7 +368,7 @@ class file2sql:
             
         '''
         pass
-        
+
     def trends(self):
         '''Get trends of our specific table.
 
