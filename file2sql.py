@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib
 #matplotlib.use('GTKCairo') # forwarding to remote machine
 import matplotlib.pyplot as plt
-
+from collections import defaultdict
 
 
 
@@ -36,7 +36,7 @@ class file2sql:
 
     Generalize
     - index_data(self)
-    - *_trends() functions
+    - *_trends() and trends() functions
 
     '''
 
@@ -288,15 +288,18 @@ class file2sql:
         # lists in columns of sql databases are bad.
         # ['Third-party', 'Install', 'Install Now'] are in DOUBLE discount_price
         cmd = ("SELECT query_date, sum(full_price), sum(discount_price), "
-               "sum(n_reviews) FROM steam WHERE appid NOT LIKE '%,%' AND "
-               "discount_price LIKE '%.%' GROUP BY query_date")
+               "sum(n_reviews) FROM steam " + self.condition + 
+               "GROUP BY query_date")
         self.cur.execute(cmd)
         dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
 
+        # plotting
         fig, ax1 = plt.subplots()
         ax1.plot(dates, full_price, 'g*')
         ax1.plot(dates, discount_price, 'g+')
         ax1.set_xlabel('time (s)')
+        # rotate date axis automatically
+        fig.autofmt_xdate()
         # Make the y-axis label and tick labels match the line color.
         ax1.set_ylabel('price ($)', color='g')
         for tl in ax1.get_yticklabels():
@@ -307,25 +310,30 @@ class file2sql:
         ax2.set_ylabel('reviews', color='r')
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
-        #plt.show()
-        plt.savefig('test')
-        
-        
-
-        
+        plt.savefig('time_trends.svg')
 
     def game_trends(self):
         '''Tabulate game-specific trends.
 
-        Not generalized.
+        Not generalized. Scrub cmd if it is.
 
         For each game:
-            Min full_price, date
-            Max full_price, date
-            Min discount_price, date
-            Max discount_price, date
+            Title, Min full_price, date
+            Title, Max full_price, date
+            Title, Min discount_price, date
+            Title, Max discount_price, date
         '''
-        pass
+
+        # going to add data to dictionary
+        
+
+        for price in ['full_price', 'discount_price']:
+            for math in ['min', 'max']:
+                cmd = ("SELECT " + math + "(" + price + 
+                        "), query_date FROM steam " + self.condition + 
+                        "GROUP BY Title")
+                self.cur.execute(cmd)
+                
 
     def review_trends(self):
         '''Review statistics
@@ -337,5 +345,14 @@ class file2sql:
         '''
         pass
         
+    def trends(self):
+        '''Get trends of our specific table.
 
+        Not generalized.
+        '''
 
+        self.condition = ("WHERE appid NOT LIKE '%,%' "
+                          "AND discount_price LIKE '%.%' ")
+        self.time_trends()
+        self.game_trends()
+        self.review_trends()
