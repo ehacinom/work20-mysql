@@ -13,8 +13,7 @@ import numpy as np
 import matplotlib
 #matplotlib.use('GTKCairo') # forwarding to remote machine
 import matplotlib.pyplot as plt
-from collections import defaultdict
-
+from tabulate import tabulate
 
 
 class file2sql:
@@ -295,8 +294,8 @@ class file2sql:
 
         # plotting
         fig, ax1 = plt.subplots()
-        ax1.plot(dates, full_price, 'g*')
-        ax1.plot(dates, discount_price, 'g+')
+        ax1.plot(dates, full_price, 'g+')
+        ax1.plot(dates, discount_price, 'g*')
         ax1.set_xlabel('time (s)')
         # rotate date axis automatically
         fig.autofmt_xdate()
@@ -310,7 +309,7 @@ class file2sql:
         ax2.set_ylabel('reviews', color='r')
         for tl in ax2.get_yticklabels():
             tl.set_color('r')
-        plt.savefig('time_trends.svg')
+        plt.savefig('time_trends.pdf')
 
     def game_trends(self):
         '''Tabulate game-specific trends.
@@ -325,14 +324,24 @@ class file2sql:
         '''
 
         # going to add data to dictionary
-        
+        games = {}
+        keys = []
 
         for price in ['full_price', 'discount_price']:
             for math in ['min', 'max']:
+                # key
+                key = math + ' ' + price
+                keys.append(key)
+
+                # retrieve from db
                 cmd = ("SELECT " + math + "(" + price + 
                         "), query_date FROM steam " + self.condition + 
                         "GROUP BY Title")
                 self.cur.execute(cmd)
+                games[key] = zip(*self.cur.fetchall())
+
+        # output
+        print tabulate(games[k])
                 
 
     def review_trends(self):
