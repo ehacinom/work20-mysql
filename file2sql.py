@@ -354,9 +354,19 @@ class file2sql:
                     for r in rows: data[r[0]].extend([r[1], r[2]])
                     cols.extend([colname, 'date'])
 
+        # flatten
+        data = [(k, v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8]) 
+                for k,v in data.items()]
+
         # output
-        if self.verbose: print 'Tables of game trends.'
-        print tabulate(data.values(), cols)
+        if self.verbose: 
+            print 'Tables of game trends.'
+            print tabulate(data, cols)
+
+        # save
+        with open("game_trends.csv", "wb") as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
 
 
     def review_trends(self):
