@@ -289,30 +289,31 @@ class file2sql:
         # lists in columns of sql databases are bad.
         # ['Third-party', 'Install', 'Install Now'] are in DOUBLE discount_price
         cmd = ("SELECT query_date, sum(full_price), sum(discount_price), "
-               "sum(n_reviews) FROM steam " + self.condition + 
+               "sum(n_reviews)/1000000. FROM steam " + self.condition + 
                "GROUP BY query_date")
         self.cur.execute(cmd)
         dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
 
         # plotting
         if self.verbose: print 'Plotting time trends.'
+        green, purple = '#00CC99', '#660066'
         fig, ax1 = plt.subplots()
-        ax1.plot(dates, full_price, 'g+')
-        ax1.plot(dates, discount_price, 'g*')
+        ax1.plot(dates, full_price, marker='h', markerfacecolor=green)
+        ax1.plot(dates, discount_price, marker='*', markerfacecolor=green)
         ax1.set_xlabel('time (s)')
-        ax1.set_ylabel('')
+        ax1.set_ylabel('reviews (millions)')
         # rotate date axis automatically
         fig.autofmt_xdate()
         # Make the y-axis label and tick labels match the line color.
-        ax1.set_ylabel('price ($)', color='g')
+        ax1.set_ylabel('price ($)', color=green)
         for tl in ax1.get_yticklabels():
-            tl.set_color('g')
+            tl.set_color(green)
 
         ax2 = ax1.twinx()
-        ax2.plot(dates, n_reviews, 'r.')
-        ax2.set_ylabel('reviews', color='r')
+        ax2.plot(dates, n_reviews, marker='.', markerfacecolor=purple)
+        ax2.set_ylabel('reviews', color=purple)
         for tl in ax2.get_yticklabels():
-            tl.set_color('r')
+            tl.set_color(purple)
         plt.savefig('time_trends.pdf')
 
     def game_trends(self):
@@ -388,5 +389,5 @@ class file2sql:
         self.condition = ("WHERE appid NOT LIKE '%,%' "
                           "AND discount_price LIKE '%.%' ")
         self.time_trends()
-        self.game_trends()
-        self.review_trends()
+        #self.game_trends()
+        #self.review_trends()
