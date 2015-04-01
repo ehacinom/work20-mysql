@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 
 matplotlib.rc('font', family='serif') 
 matplotlib.rc('font', weight='light') 
-
-matplotlib.rc('font', serif='Helvetica Neue') 
 matplotlib.rc('text', usetex='false') 
 matplotlib.rcParams.update({'font.size': 22})
 
