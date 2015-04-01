@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 matplotlib.rc('font', weight='light') 
 matplotlib.rc('text', usetex='false') 
-#matplotlib.rcParams.update({'font.size': 22})
+matplotlib.rcParams.update({'font.size': 12})
 
 
 from tabulate import tabulate
