@@ -15,7 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 matplotlib.rc('font', weight='light') 
-matplotlib.rcParams.update({'font.size': 10})
+#matplotlib.rcParams.update({'font.size': 10})
 
 
 from tabulate import tabulate
@@ -305,11 +305,11 @@ class file2sql:
         fig, ax1 = plt.subplots()
 
         # prices in ax1
-        line1 = ax1.plot(dates, full_price, color=g1, label = 'total full price')
-        line2 = ax1.plot(dates, discount_price, color=g2, label = 'total discount price')
+        line1 = ax1.plot(dates, full_price, color=g2, label = 'full price')
+        line2 = ax1.plot(dates, discount_price, color=g1, label = 'discount price')
 
         # x-axis
-        ax1.set_xlabel('time (s)')
+        ax1.set_xlabel('date')
         ax1.set_ylabel('reviews (millions)')
         fig.autofmt_xdate() # rotate date axis automatically
 
