@@ -340,10 +340,11 @@ class file2sql:
         Not generalized. Scrub cmd if it is.
 
         For each game:
-            Title, Min full_price, date
-            Title, Max full_price, date
-            Title, Min discount_price, date
-            Title, Max discount_price, date
+            Title, 
+            Min full_price, date
+            Max full_price, date
+            Min discount_price, date
+            Max discount_price, date
         '''
 
         # save each row of data as dictionary data[Title] = [Title, etc...]
@@ -352,7 +353,6 @@ class file2sql:
         if self.verbose: print 'Retrieving game trends from database.'
         for price in ['full_price', 'discount_price']:
             for math in ['min', 'max']:
-                # retrieve from db
                 cmd = ("SELECT Title, " + math + "(" + price + 
                         "), query_date FROM steam " + self.condition + 
                         "GROUP BY Title")
@@ -394,9 +394,18 @@ class file2sql:
         Not generalized.
 
         For each review:
-            
+            review, min grade, avg grade, max grade
         '''
-        pass
+
+        if self.verbose: print 'Retrieving review trends from database.'
+        cmd = ("SELECT review, min(grade), avg(grade) as mid, max(grade) FROM steam " +
+               "GROUP BY review ORDER BY mid")
+        self.cur.execute(cmd)
+        rows = self.cur.fetchall()
+        
+        cols = ['review', 'min grade', 'avg grade', 'max grade']
+        print tabulate(rows, cols)
+        
 
     def trends(self):
         '''Get trends of our specific table.
@@ -404,8 +413,16 @@ class file2sql:
         Not generalized.
         '''
 
+        # excluding bundles of games and games with bad columns
         self.condition = ("WHERE appid NOT LIKE '%,%' "
                           "AND discount_price LIKE '%.%' ")
-        self.time_trends()
+
+        #self.time_trends()
         #self.game_trends()
-        #self.review_trends()
+        self.review_trends()
+
+
+
+
+
+
