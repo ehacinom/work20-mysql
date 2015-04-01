@@ -14,11 +14,9 @@ import matplotlib
 #matplotlib.use('GTKCairo') # forwarding to remote machine
 import matplotlib.pyplot as plt
 
-
-matplotlib.rc('font', family='serif') 
 matplotlib.rc('font', weight='light') 
 matplotlib.rc('text', usetex='false') 
-matplotlib.rcParams.update({'font.size': 22})
+#matplotlib.rcParams.update({'font.size': 22})
 
 
 from tabulate import tabulate
