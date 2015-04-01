@@ -8,8 +8,7 @@ Usage
     name        = $NAME     # table name  
     verbose     = False  
       
-    x = mySQLfile(credentials, directory, name)  
-    x.get_files()  
+    x = mySQLfile(credentials, directory, name, verbose)  
     x.load_data()  
     x.index_data()  
     x.trends()  

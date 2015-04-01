@@ -19,10 +19,10 @@ from tabulate import tabulate
 class file2sql:
     '''
     Move files in a directory to a database table. Plot relevant information.
+    Assumed csv files and 1 header line. See README.md for other assumptions.
 
-    Assumed csv files and 1 header line.
 
-    Usage
+    USAGE
 
     credentials = ($HOST, $USER, $PASSWD, $DB)
     directory   = $DIR      # data directory
@@ -30,24 +30,22 @@ class file2sql:
     verbose     = False
 
     x = mySQLfile(credentials, directory, name)
-    x.get_files()
     x.load_data()
     x.index_data()
     x.trends()
 
-    Generalize
-    - index_data(self)
+
+    GENERALIZE
+    - index_data()
     - *_trends() and trends() functions
 
     '''
 
     def __init__(self, credentials, directory, name, verbose=True):
         '''Connect to database, find files to upload.'''
-
         self.credentials = credentials
-        # check database exists, if not, create it
 
-        # connect. create database if DNE
+        # check database exists, if not, create it, and connect
         connected = False
         db = credentials[3]
         while not connected:
@@ -74,7 +72,6 @@ class file2sql:
                     tmpcon.commit()
                     tmpcur.close()
         self.dbname = db
-
         self.cur = self.db.cursor()
 
         # checking the dir exists
@@ -113,7 +110,7 @@ class file2sql:
         return int(ans)
 
     def get_files(self, pattern='*.csv*'):
-        '''Get all files from directory and its subdirectories.'''
+        '''Get all files like pattern from directory and its subdirectories.'''
         files = []
         for d, _, _ in os.walk(self.directory):
             files.extend(glob.glob(os.path.join(d, pattern)))
@@ -121,7 +118,7 @@ class file2sql:
 
     def get_table(self):
         '''Check for preexisting table with the same name.
-        
+
         0: load data
         1: (delete table), create table, load data
         '''
@@ -236,6 +233,9 @@ class file2sql:
         loader:    loads data into table
         '''
 
+        # get files
+        self.get_files(pattern='*.csv*')
+
         # init table
         self.get_table()
 
@@ -271,7 +271,6 @@ class file2sql:
         # commit
         self.db.commit()
 
-
     def time_trends(self):
         '''Plot daily trends.
 
@@ -298,9 +297,9 @@ class file2sql:
         if self.verbose: print 'Plotting time trends.'
         green, purple = '#00CC99', '#660066'
         fig, ax1 = plt.subplots()
-        ax1.plot(dates, full_price, marker = 'h', markerfacecolor = green, 
+        ax1.plot(dates, full_price, #marker = 'h', markerfacecolor = green, 
                  label = 'total full price')
-        ax1.plot(dates, discount_price, marker = '*', markerfacecolor = green, 
+        ax1.plot(dates, discount_price, #marker = '*', markerfacecolor = green, 
                  label = 'total discount price')
         ax1.set_xlabel('time (s)')
         ax1.set_ylabel('reviews (millions)')
