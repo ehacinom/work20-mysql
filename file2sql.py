@@ -287,37 +287,44 @@ class file2sql:
         # CAREFUL
         # lists in columns of sql databases are bad.
         # ['Third-party', 'Install', 'Install Now'] are in DOUBLE discount_price
-        cmd = ("SELECT query_date, sum(full_price), sum(discount_price), "
-               "sum(n_reviews)/1000000. FROM steam " + self.condition + 
-               "GROUP BY query_date")
+        cmd = ("SELECT query_date, sum(full_price)/1000, "
+               "sum(discount_price)/1000, sum(n_reviews)/1000000. FROM steam " 
+               + self.condition + "GROUP BY query_date")
         self.cur.execute(cmd)
         dates, full_price, discount_price, n_reviews = zip(*self.cur.fetchall())
 
         # plotting
         if self.verbose: print 'Plotting time trends.'
-        green, purple = '#00CC99', '#660066'
+        g0, g1, g2 = '#3BCF3B', '#059305', '#98EC98'
+        orange = '#FF9B49'
         fig, ax1 = plt.subplots()
-        ax1.plot(dates, full_price, #marker = 'h', markerfacecolor = green, 
-                 label = 'total full price')
-        ax1.plot(dates, discount_price, #marker = '*', markerfacecolor = green, 
-                 label = 'total discount price')
+
+        # prices in ax1
+        ax1.plot(dates, full_price, color=g1, label = 'total full price')
+        ax1.plot(dates, discount_price, color=g2, label = 'total discount price')
+
+        # x-axis
         ax1.set_xlabel('time (s)')
         ax1.set_ylabel('reviews (millions)')
-        # rotate date axis automatically
-        fig.autofmt_xdate()
-        # Make the y-axis label and tick labels match the line color.
-        ax1.set_ylabel('price ($)', color=green)
-        for tl in ax1.get_yticklabels():
-            tl.set_color(green)
+        fig.autofmt_xdate() # rotate date axis automatically
 
-        ax2 = ax1.twinx()
-        ax2.plot(dates, n_reviews, marker = '.', markerfacecolor = purple, 
-                 label = 'reviews')
-        ax2.set_ylabel('reviews (millions)', color=purple)
-        for tl in ax2.get_yticklabels():
-            tl.set_color(purple)
-        
+        # y-axis in ax1
+        ax1.set_ylabel('price ($1000)', color=g0)
+        for tl in ax1.get_yticklabels():
+            tl.set_color(g0)
+
         plt.legend(loc = 'lower right')
+
+        # reviews in ax2
+        ax2 = ax1.twinx()
+        ax2.plot(dates, n_reviews,  label = 'reviews')
+
+        # y-axis in ax2
+        ax2.set_ylabel('reviews (millions)', color=orange)
+        for tl in ax2.get_yticklabels():
+            tl.set_color(orange)
+
+        #plt.legend(loc = 'lower right')
         plt.title('Prices and reviews of the entire Steam games library')
         plt.savefig('time_trends.pdf')
 
