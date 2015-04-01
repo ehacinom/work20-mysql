@@ -298,8 +298,10 @@ class file2sql:
         if self.verbose: print 'Plotting time trends.'
         green, purple = '#00CC99', '#660066'
         fig, ax1 = plt.subplots()
-        ax1.plot(dates, full_price, marker='h', markerfacecolor=green)
-        ax1.plot(dates, discount_price, marker='*', markerfacecolor=green)
+        ax1.plot(dates, full_price, marker = 'h', markerfacecolor = green, 
+                 label = 'total full price')
+        ax1.plot(dates, discount_price, marker = '*', markerfacecolor = green, 
+                 label = 'total discount price')
         ax1.set_xlabel('time (s)')
         ax1.set_ylabel('reviews (millions)')
         # rotate date axis automatically
@@ -310,10 +312,14 @@ class file2sql:
             tl.set_color(green)
 
         ax2 = ax1.twinx()
-        ax2.plot(dates, n_reviews, marker='.', markerfacecolor=purple)
-        ax2.set_ylabel('reviews', color=purple)
+        ax2.plot(dates, n_reviews, marker = '.', markerfacecolor = purple, 
+                 label = 'reviews')
+        ax2.set_ylabel('reviews (millions)', color=purple)
         for tl in ax2.get_yticklabels():
             tl.set_color(purple)
+        
+        plt.legend(loc = 'lower right')
+        plt.title('Prices and reviews of the entire Steam games library')
         plt.savefig('time_trends.pdf')
 
     def game_trends(self):
