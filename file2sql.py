@@ -13,6 +13,16 @@ import numpy as np
 import matplotlib
 #matplotlib.use('GTKCairo') # forwarding to remote machine
 import matplotlib.pyplot as plt
+
+
+matplotlib.rc('font', family='serif') 
+matplotlib.rc('font', weight='light') 
+
+matplotlib.rc('font', serif='Helvetica Neue') 
+matplotlib.rc('text', usetex='false') 
+matplotlib.rcParams.update({'font.size': 22})
+
+
 from tabulate import tabulate
 
 
@@ -317,14 +327,14 @@ class file2sql:
 
         # reviews in ax2
         ax2 = ax1.twinx()
-        ax2.plot(dates, n_reviews,  label = 'reviews')
+        ax2.plot(dates, n_reviews, color=orange, label = 'reviews')
 
         # y-axis in ax2
         ax2.set_ylabel('reviews (millions)', color=orange)
         for tl in ax2.get_yticklabels():
             tl.set_color(orange)
 
-        #plt.legend(loc = 'lower right')
+        plt.legend(loc = 'lower right')
         plt.title('Prices and reviews of the entire Steam games library')
         plt.savefig('time_trends.pdf')
 
