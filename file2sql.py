@@ -329,7 +329,7 @@ class file2sql:
 
         # legend
         lines = line1 + line2 + line3
-        label = [line.get_labe() for line in lines]
+        label = [line.get_label() for line in lines]
         plt.legend(lines, label, loc = 'lower right')
         plt.title('Prices and reviews of the entire Steam games library')
         plt.savefig('time_trends.pdf')
