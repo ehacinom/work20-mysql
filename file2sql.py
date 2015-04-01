@@ -402,10 +402,15 @@ class file2sql:
                "GROUP BY review ORDER BY mid")
         self.cur.execute(cmd)
         rows = self.cur.fetchall()
-        
+
+        # output
         cols = ['review', 'min grade', 'avg grade', 'max grade']
         print tabulate(rows, cols)
-        
+
+        # save
+        with open("review_trends.csv", "wb") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
 
     def trends(self):
         '''Get trends of our specific table.
