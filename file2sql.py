@@ -305,12 +305,12 @@ class file2sql:
         fig, ax1 = plt.subplots()
 
         # prices in ax1
-        ax1.plot(dates, full_price, color=g1, label = 'total full price')
-        ax1.plot(dates, discount_price, color=g2, label = 'total discount price')
+        line1 = ax1.plot(dates, full_price, color=g1, label = 'total full price')
+        line2 = ax1.plot(dates, discount_price, color=g2, label = 'total discount price')
 
         # x-axis
-        line1 = ax1.set_xlabel('time (s)')
-        line2 = ax1.set_ylabel('reviews (millions)')
+        ax1.set_xlabel('time (s)')
+        ax1.set_ylabel('reviews (millions)')
         fig.autofmt_xdate() # rotate date axis automatically
 
         # y-axis in ax1
