@@ -15,8 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 matplotlib.rc('font', weight='light') 
-matplotlib.rc('text', usetex='false') 
-matplotlib.rcParams.update({'font.size': 12})
+matplotlib.rcParams.update({'font.size': 10})
 
 
 from tabulate import tabulate
@@ -310,8 +309,8 @@ class file2sql:
         ax1.plot(dates, discount_price, color=g2, label = 'total discount price')
 
         # x-axis
-        ax1.set_xlabel('time (s)')
-        ax1.set_ylabel('reviews (millions)')
+        line1 = ax1.set_xlabel('time (s)')
+        line2 = ax1.set_ylabel('reviews (millions)')
         fig.autofmt_xdate() # rotate date axis automatically
 
         # y-axis in ax1
@@ -319,18 +318,19 @@ class file2sql:
         for tl in ax1.get_yticklabels():
             tl.set_color(g0)
 
-        plt.legend(loc = 'lower right')
-
         # reviews in ax2
         ax2 = ax1.twinx()
-        ax2.plot(dates, n_reviews, color=orange, label = 'reviews')
+        line3 = ax2.plot(dates, n_reviews, color=orange, label = 'reviews')
 
         # y-axis in ax2
         ax2.set_ylabel('reviews (millions)', color=orange)
         for tl in ax2.get_yticklabels():
             tl.set_color(orange)
 
-        plt.legend(loc = 'lower right')
+        # legend
+        lines = line1 + line2 + line3
+        label = [line.get_labe() for line in lines]
+        plt.legend(lines, label, loc = 'lower right')
         plt.title('Prices and reviews of the entire Steam games library')
         plt.savefig('time_trends.pdf')
 
